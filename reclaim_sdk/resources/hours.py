@@ -1,9 +1,11 @@
 from typing import ClassVar, Dict, List, Optional
-from pydantic import Field
+from pydantic import ConfigDict, Field
 from reclaim_sdk.resources.base import BaseResource
 
 
 class Hours(BaseResource):
+    model_config = ConfigDict(alias_generator=None, populate_by_name=True)
+
     ENDPOINT: ClassVar[str] = "/api/timeschemes"
 
     id: str = Field(..., description="Unique identifier of the time scheme")
@@ -19,7 +21,3 @@ class Hours(BaseResource):
     features: List[str] = Field(
         ..., description="List of features associated with the time scheme"
     )
-
-    class Config:
-        alias_generator = None
-        populate_by_name = True

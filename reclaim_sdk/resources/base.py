@@ -16,7 +16,10 @@ class BaseResource(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
-        self._client = ReclaimClient()
+        if data.get("token"):
+            self._client = ReclaimClient.configure(token=data["token"])
+        else:
+            self._client = ReclaimClient()
 
     @classmethod
     def from_api_data(cls: Type[T], data: Dict) -> T:
@@ -26,20 +29,21 @@ class BaseResource(BaseModel):
         return self.model_dump(exclude_unset=False, by_alias=True)
 
     @classmethod
-    def get(cls: Type[T], id: int) -> T:
-        client = ReclaimClient()
+    def get(cls: Type[T], id: int, client: ReclaimClient = None) -> T:
+        if client is None:
+            client = ReclaimClient()
         data = client.get(f"{cls.ENDPOINT}/{id}")
         return cls.from_api_data(data)
 
     def refresh(self) -> None:
         if not self.id:
             raise ValueError("Cannot refresh a resource without an ID")
-        client = ReclaimClient()
+        client = self._client
         data = client.get(f"{self.ENDPOINT}/{self.id}")
         self.__dict__.update(self.from_api_data(data).__dict__)
 
     def save(self) -> None:
-        client = ReclaimClient()
+        client = self._client
         data = self.to_api_data()
         if self.id:
             response = client.patch(f"{self.ENDPOINT}/{self.id}", json=data)
@@ -50,11 +54,12 @@ class BaseResource(BaseModel):
     def delete(self) -> None:
         if not self.id:
             raise ValueError("Cannot delete a resource without an ID")
-        client = ReclaimClient()
+        client = self._client
         client.delete(f"{self.ENDPOINT}/{self.id}")
 
     @classmethod
-    def list(cls: Type[T], **params) -> List[T]:
-        client = ReclaimClient()
+    def list(cls: Type[T], client: ReclaimClient = None, **params) -> List[T]:
+        if client is None:
+            client = ReclaimClient()
         data = client.get(cls.ENDPOINT, params=params)
         return [cls.from_api_data(item) for item in data]
